@@ -1,10 +1,20 @@
-require('dotenv').config();
-const express = require('express');
-const connectDB = require('./config/db');
-const productRoutes = require('./routes/productRoutes');
-const authRoutes = require('./routes/authRoutes');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors"); // Import CORS
+const connectDB = require("./config/db");
+const productRoutes = require("./routes/productRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
+
+// ✅ Enable CORS
+const corsOptions = {
+  origin: "*", // Allow all origins (for testing)
+  methods: "GET, POST, PUT, DELETE",
+  allowedHeaders: "Content-Type, Authorization",
+};
+
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(express.json());
@@ -13,11 +23,11 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.use('/api/products', productRoutes);
-app.use('/api/auth', authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/auth", authRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Fashion E-commerce Backend is running!');
+app.get("/", (req, res) => {
+  res.send("Fashion E-commerce Backend is running!");
 });
 
 // Start server
