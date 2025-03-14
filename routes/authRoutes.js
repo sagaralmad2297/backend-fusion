@@ -127,11 +127,16 @@ router.post('/refresh', async (req, res) => {
     }
 
     const accessToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const newRefreshToken = jwt.sign({ userId: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
+
+    user.refreshToken = newRefreshToken;
+    await user.save();
 
     res.json({
       status: 200,
       message: 'Token refreshed successfully',
       accessToken,
+      refreshToken: newRefreshToken, // Returning new refresh token
     });
   } catch (error) {
     res.status(401).json({
