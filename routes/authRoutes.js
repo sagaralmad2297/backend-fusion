@@ -180,7 +180,26 @@ router.post('/forgot-password', async (req, res) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Password Reset Request',
-      text: `Click this link to reset your password: http://localhost:3000/reset-password/${resetToken}\n\nThis link expires in 15 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p>We received a request to reset your password. Click the button below to proceed:</p>
+          <a href="https://fusion-v1-1.vercel.app/reset-password/${resetToken}" 
+             style="display: inline-block; padding: 12px 24px; background-color: #007bff; 
+                    color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
+            Reset Password
+          </a>
+          <p style="color: #666; font-size: 0.9em;">
+            This link will expire in 15 minutes.<br>
+            If you didn't request this password reset, you can safely ignore this email.
+          </p>
+          <hr style="border: 1px solid #ddd;">
+          <p style="color: #999; font-size: 0.8em;">
+            Sent by Fusion App • 
+            <a href="https://fusion-v1-1.vercel.app" style="color: #999;">Visit our website</a>
+          </p>
+        </div>
+      `
     };
 
     await transporter.sendMail(mailOptions);

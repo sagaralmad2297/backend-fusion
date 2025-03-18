@@ -1,3 +1,4 @@
+// 🛠️ Updated Product Model (models/Product.js)
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
@@ -33,10 +34,22 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Product image is required'],
   },
+  brand: {
+    type: String,
+    required: [true, 'Brand is required'],
+    enum: ['Nike', 'Pdidas', 'Yuma', 'Geebok', 'Over Arm', 'Neo'],
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+// Virtual property for formatted price
+productSchema.virtual('formattedPrice').get(function() {
+  return `₹${this.price.toFixed(2)}`;
+});
+
+productSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Product', productSchema);
