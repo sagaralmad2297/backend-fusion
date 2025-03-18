@@ -184,7 +184,7 @@ router.post('/forgot-password', async (req, res) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Password Reset Request</h2>
           <p>We received a request to reset your password. Click the button below to proceed:</p>
-          <a href="https://fusion-v1-1.vercel.app/reset-password/${resetToken}" 
+          <a href="https://fusion-v1-1.vercel.app/reset-password?token=${encodeURIComponent(resetToken)}" 
              style="display: inline-block; padding: 12px 24px; background-color: #007bff; 
                     color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">
             Reset Password
