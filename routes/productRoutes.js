@@ -1,4 +1,9 @@
-// 🛠️ Updated GET Endpoint (routes/products.js)
+// routes/products.js
+const express = require('express');
+const router = express.Router();
+const Product = require('../models/Product');
+
+// 🛠️ GET Endpoint - Get all products with filters
 router.get('/', async (req, res) => {
   try {
     let { 
@@ -19,9 +24,7 @@ router.get('/', async (req, res) => {
     const filter = {};
 
     // Category filter
-    if (category) {
-      filter.category = category;
-    }
+    if (category) filter.category = category;
 
     // Price range filter
     if (minPrice || maxPrice) {
@@ -63,20 +66,28 @@ router.get('/', async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ status: 500, message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ 
+      status: 500, 
+      message: 'Internal Server Error', 
+      error: error.message 
+    });
   }
 });
 
-
-
-// 🛠️ Updated POST Endpoint (routes/products.js)
+// 🛠️ POST Endpoint - Create new product
 router.post('/', async (req, res) => {
   try {
     const { name, description, price, sizes, category, stock, imageUrl, brand } = req.body;
 
-    // Required fields check
-    if (!name || !description || !price || !category || !stock || !imageUrl || !brand) {
-      return res.status(400).json({ status: 400, message: 'All fields are required' });
+    // Required fields validation
+    const requiredFields = ['name', 'description', 'price', 'category', 'stock', 'imageUrl', 'brand'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        status: 400,
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
     }
 
     const product = new Product({ 
@@ -92,65 +103,93 @@ router.post('/', async (req, res) => {
 
     await product.save();
 
-    res.status(201).json({ status: 201, message: 'Product added successfully' });
+    res.status(201).json({ 
+      status: 201, 
+      message: 'Product added successfully',
+      data: product
+    });
   } catch (error) {
-    res.status(500).json({ status: 500, message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ 
+      status: 500, 
+      message: 'Internal Server Error', 
+      error: error.message 
+    });
   }
 });
 
-// 🛠️ Updated PUT Endpoint (routes/products.js)
+// 🛠️ PUT Endpoint - Update product
 router.put('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
     const updates = req.body;
-    
-    // Validate price if being updated
+
+    // Validate price
     if (updates.price !== undefined && updates.price < 0) {
-      return res.status(400).json({ status: 400, message: 'Price cannot be negative' });
+      return res.status(400).json({ 
+        status: 400, 
+        message: 'Price cannot be negative' 
+      });
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
+      id,
       updates,
       { new: true, runValidators: true }
     );
 
     if (!updatedProduct) {
-      return res.status(404).json({ status: 404, message: 'Product not found' });
+      return res.status(404).json({ 
+        status: 404, 
+        message: 'Product not found' 
+      });
     }
 
     res.status(200).json({
       status: 200,
       message: 'Product updated successfully',
-      data: updatedProduct.toJSON({ virtuals: true })
+      data: updatedProduct
     });
   } catch (error) {
-    res.status(500).json({ status: 500, message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ 
+      status: 500, 
+      message: 'Internal Server Error', 
+      error: error.message 
+    });
   }
 });
 
-
-// 🛠️ Updated DELETE Endpoint (routes/products.js)
+// 🛠️ DELETE Endpoint - Delete product
 router.delete('/:id', async (req, res) => {
   try {
-    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const deletedProduct = await Product.findByIdAndDelete(id);
 
     if (!deletedProduct) {
-      return res.status(404).json({ status: 404, message: 'Product not found' });
+      return res.status(404).json({ 
+        status: 404, 
+        message: 'Product not found' 
+      });
     }
 
     res.status(200).json({ 
       status: 200, 
       message: 'Product deleted successfully',
-      deletedProduct: {
+      data: {
         _id: deletedProduct._id,
         name: deletedProduct.name,
-        formattedPrice: `₹${deletedProduct.price.toFixed(2)}`
+        price: deletedProduct.price
       }
     });
   } catch (error) {
-    res.status(500).json({ status: 500, message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ 
+      status: 500, 
+      message: 'Internal Server Error', 
+      error: error.message 
+    });
   }
 });
+
+module.exports = router;
 
 
 
