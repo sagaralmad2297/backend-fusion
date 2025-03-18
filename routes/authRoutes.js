@@ -201,6 +201,7 @@ router.post('/forgot-password', async (req, res) => {
         </div>
       `
     };
+    
 
     await transporter.sendMail(mailOptions);
 
