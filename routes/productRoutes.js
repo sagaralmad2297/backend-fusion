@@ -1,58 +1,63 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Product = require('../models/Product');
 
-// ⚒️ GET Endpoint - Get all products with filters
-// ⚒️ GET Endpoint - Get all products with filters + sorting + pagination
-router.get('/', async (req, res) => {
+// ✅ POST /api/products/get - Get filtered products
+router.post('/get', async (req, res) => {
   try {
-    let { 
-      page, 
-      limit, 
-      category, 
-      minPrice, 
-      maxPrice, 
-      sizes, 
+    let {
+      page = 1,
+      limit = 10,
+      category,
+      minPrice,
+      maxPrice,
+      sizes,
       brands,
-      sort 
-    } = req.query;
+      sort
+    } = req.body;
 
-    // Pagination defaults
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
 
-    // Build filter object
+    const skip = (page - 1) * limit;
     const filter = {};
 
-    if (category) filter.category = category;
+    // Category filter
+    if (category) {
+      filter.category = category;
+    }
 
-    if (minPrice || maxPrice) {
+    // Price range filter
+    if (minPrice !== undefined || maxPrice !== undefined) {
       filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+      if (minPrice !== undefined) filter.price.$gte = minPrice;
+      if (maxPrice !== undefined) filter.price.$lte = maxPrice;
     }
 
-    if (sizes) {
-      const sizesArray = Array.isArray(sizes) ? sizes : sizes.split(',');
-      filter.sizes = { $in: sizesArray };
+    // Sizes filter
+    if (Array.isArray(sizes) && sizes.length > 0) {
+      filter.sizes = { $in: sizes };
     }
 
-    if (brands) {
-      const brandsArray = Array.isArray(brands) ? brands : brands.split(',');
-      filter.brand = { $in: brandsArray };
+    // Brands filter
+    if (Array.isArray(brands) && brands.length > 0) {
+      filter.brand = { $in: brands };
     }
 
     // Sorting
     let sortOption = {};
     if (sort === 'price_asc') sortOption.price = 1;
     else if (sort === 'price_desc') sortOption.price = -1;
+    else if (sort === 'newest') sortOption.createdAt = -1;
+    else if (sort === 'oldest') sortOption.createdAt = 1;
 
-    // Execute query
+    // Fetch from DB
     const totalItems = await Product.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / limit);
     const products = await Product.find(filter)
       .sort(sortOption)
-      .skip((page - 1) * limit)
+      .skip(skip)
       .limit(limit);
 
     res.status(200).json({
@@ -64,29 +69,27 @@ router.get('/', async (req, res) => {
           totalItems,
           totalPages,
           currentPage: page,
-          pageSize: limit,
-        },
-      },
+          pageSize: limit
+        }
+      }
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 500, 
-      message: 'Internal Server Error', 
-      error: error.message 
+    res.status(500).json({
+      status: 500,
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 });
 
-
-// ⚒️ POST Endpoint - Create new product
+// ✅ POST /api/products - Create new product
 router.post('/', async (req, res) => {
   try {
     const { name, description, price, sizes, category, stock, images, brand } = req.body;
 
-    // Required fields validation
     const requiredFields = ['name', 'description', 'price', 'category', 'stock', 'images', 'brand'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
-    
+
     if (missingFields.length > 0) {
       return res.status(400).json({
         status: 400,
@@ -101,44 +104,50 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const product = new Product({ 
-      name, 
-      description, 
-      price, 
-      sizes, 
-      category, 
-      stock, 
-      images, 
-      brand 
+    const product = new Product({
+      name,
+      description,
+      price,
+      sizes,
+      category,
+      stock,
+      images,
+      brand
     });
 
     await product.save();
 
-    res.status(201).json({ 
-      status: 201, 
+    res.status(201).json({
+      status: 201,
       message: 'Product added successfully',
       data: product
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 500, 
-      message: 'Internal Server Error', 
-      error: error.message 
+    res.status(500).json({
+      status: 500,
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 });
 
-// ⚒️ PUT Endpoint - Update product
+// ✅ PUT /api/products/:id - Update product
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
 
-    // Validate price
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: 400,
+        message: 'Invalid Product ID'
+      });
+    }
+
     if (updates.price !== undefined && updates.price < 0) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: 'Price cannot be negative' 
+      return res.status(400).json({
+        status: 400,
+        message: 'Price cannot be negative'
       });
     }
 
@@ -156,9 +165,9 @@ router.put('/:id', async (req, res) => {
     );
 
     if (!updatedProduct) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: 'Product not found' 
+      return res.status(404).json({
+        status: 404,
+        message: 'Product not found'
       });
     }
 
@@ -168,29 +177,37 @@ router.put('/:id', async (req, res) => {
       data: updatedProduct
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 500, 
-      message: 'Internal Server Error', 
-      error: error.message 
+    res.status(500).json({
+      status: 500,
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 });
 
-// ⚒️ DELETE Endpoint - Delete product
+// ✅ DELETE /api/products/:id - Delete product
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deletedProduct = await Product.findByIdAndDelete(id);
 
-    if (!deletedProduct) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: 'Product not found' 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        status: 400,
+        message: 'Invalid Product ID'
       });
     }
 
-    res.status(200).json({ 
-      status: 200, 
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res.status(404).json({
+        status: 404,
+        message: 'Product not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
       message: 'Product deleted successfully',
       data: {
         _id: deletedProduct._id,
@@ -199,15 +216,16 @@ router.delete('/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 500, 
-      message: 'Internal Server Error', 
-      error: error.message 
+    res.status(500).json({
+      status: 500,
+      message: 'Internal Server Error',
+      error: error.message
     });
   }
 });
 
 module.exports = router;
+
 
 
 
