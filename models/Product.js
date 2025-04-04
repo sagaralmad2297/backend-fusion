@@ -1,4 +1,3 @@
-// 🛠️ Updated Product Model (models/Product.js)
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
@@ -30,14 +29,14 @@ const productSchema = new mongoose.Schema({
     required: [true, 'Stock quantity is required'],
     min: [0, 'Stock cannot be negative'],
   },
-  imageUrl: {
+  images: [{
     type: String,
-    required: [true, 'Product image is required'],
-  },
+    required: [true, 'At least one product image is required'],
+  }],
   brand: {
     type: String,
     required: [true, 'Brand is required'],
-    enum: ['Nike', 'Pdidas', 'Yuma', 'Geebok', 'Over Arm', 'Neo'],
+    enum: ['kine', 'Pdidas', 'Yuma', 'Geebok', 'Over Arm', 'Norvix'],
   },
   createdAt: {
     type: Date,

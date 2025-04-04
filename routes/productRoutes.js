@@ -1,9 +1,9 @@
-// routes/products.js
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 
-// 🛠️ GET Endpoint - Get all products with filters
+// ⚒️ GET Endpoint - Get all products with filters
+// ⚒️ GET Endpoint - Get all products with filters + sorting + pagination
 router.get('/', async (req, res) => {
   try {
     let { 
@@ -13,7 +13,8 @@ router.get('/', async (req, res) => {
       minPrice, 
       maxPrice, 
       sizes, 
-      brands 
+      brands,
+      sort 
     } = req.query;
 
     // Pagination defaults
@@ -23,32 +24,34 @@ router.get('/', async (req, res) => {
     // Build filter object
     const filter = {};
 
-    // Category filter
     if (category) filter.category = category;
 
-    // Price range filter
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = parseFloat(minPrice);
       if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
     }
 
-    // Sizes filter
     if (sizes) {
       const sizesArray = Array.isArray(sizes) ? sizes : sizes.split(',');
       filter.sizes = { $in: sizesArray };
     }
 
-    // Brands filter
     if (brands) {
       const brandsArray = Array.isArray(brands) ? brands : brands.split(',');
       filter.brand = { $in: brandsArray };
     }
 
+    // Sorting
+    let sortOption = {};
+    if (sort === 'price_asc') sortOption.price = 1;
+    else if (sort === 'price_desc') sortOption.price = -1;
+
     // Execute query
     const totalItems = await Product.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / limit);
     const products = await Product.find(filter)
+      .sort(sortOption)
       .skip((page - 1) * limit)
       .limit(limit);
 
@@ -74,19 +77,27 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 🛠️ POST Endpoint - Create new product
+
+// ⚒️ POST Endpoint - Create new product
 router.post('/', async (req, res) => {
   try {
-    const { name, description, price, sizes, category, stock, imageUrl, brand } = req.body;
+    const { name, description, price, sizes, category, stock, images, brand } = req.body;
 
     // Required fields validation
-    const requiredFields = ['name', 'description', 'price', 'category', 'stock', 'imageUrl', 'brand'];
+    const requiredFields = ['name', 'description', 'price', 'category', 'stock', 'images', 'brand'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     
     if (missingFields.length > 0) {
       return res.status(400).json({
         status: 400,
         message: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+
+    if (!Array.isArray(images) || images.length < 1) {
+      return res.status(400).json({
+        status: 400,
+        message: 'At least one product image is required',
       });
     }
 
@@ -97,7 +108,7 @@ router.post('/', async (req, res) => {
       sizes, 
       category, 
       stock, 
-      imageUrl, 
+      images, 
       brand 
     });
 
@@ -117,7 +128,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 🛠️ PUT Endpoint - Update product
+// ⚒️ PUT Endpoint - Update product
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -128,6 +139,13 @@ router.put('/:id', async (req, res) => {
       return res.status(400).json({ 
         status: 400, 
         message: 'Price cannot be negative' 
+      });
+    }
+
+    if (updates.images && (!Array.isArray(updates.images) || updates.images.length < 1)) {
+      return res.status(400).json({
+        status: 400,
+        message: 'At least one product image is required',
       });
     }
 
@@ -158,7 +176,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 🛠️ DELETE Endpoint - Delete product
+// ⚒️ DELETE Endpoint - Delete product
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -194,177 +212,96 @@ module.exports = router;
 
 
 
-/* 📚 API ENDPOINTS & EXAMPLES */
 
-// 1️⃣ CREATE PRODUCT
-// POST /api/products
-// Request Body:
-/*
+ /*## 🛍️ Product API Documentation
+
+### 🔗 Base URL
+```
+http://localhost:5000/api/products
+```
+
+---
+
+### 📥 1. Get All Products
+**Method:** `GET`
+
+**URL:** `/api/products`
+
+#### ✅ Query Parameters (optional):
+| Parameter  | Type     | Description                                      |
+|------------|----------|--------------------------------------------------|
+| `page`     | Number   | Page number (default: 1)                         |
+| `limit`    | Number   | Items per page (default: 10)                     |
+| `category` | String   | Filter by category: `Men`, `Women`, `Kids`       |
+| `minPrice` | Number   | Filter products with price >= minPrice          |
+| `maxPrice` | Number   | Filter products with price <= maxPrice          |
+| `sizes`    | String[] | Filter by sizes: `XS`, `S`, `M`, `L`, `XL`, `XXL`|
+| `brands`   | String[] | Filter by brands: `Nike`, `Pdidas`, etc.        |
+
+#### 🔍 Example:
+```
+GET /api/products?category=Men&minPrice=500&maxPrice=2000&sizes=M,L&brands=Nike,Yuma
+```
+
+---
+
+### 📤 2. Create New Product
+**Method:** `POST`
+
+**URL:** `/api/products`
+
+#### 📦 Request Body:
+```json
 {
-  "name": "Men's Running Shoes",
-  "description": "Lightweight running shoes with cushioning",
-  "price": 3499,
-  "sizes": ["M", "L"],
+  "name": "Slim Fit T-Shirt",
+  "description": "Comfortable and stylish T-shirt",
+  "price": 899,
+  "sizes": ["S", "M", "L"],
   "category": "Men",
-  "stock": 25,
-  "imageUrl": "https://example.com/shoes.jpg",
+  "stock": 120,
+  "images": ["https://example.com/images/shirt1.jpg"],
   "brand": "Nike"
 }
-*/
-// Success Response (201):
-/*
-{
-  "status": 201,
-  "message": "Product added successfully"
-}
-*/
-// Error Response (400):
-/*
-{
-  "status": 400,
-  "message": "Validation failed",
-  "errors": {
-    "brand": "Brand is required",
-    "price": "Price cannot be negative"
-  }
-}
-*/
+```
 
-// 2️⃣ GET ALL PRODUCTS (WITH FILTERS)
-// GET /api/products?page=1&limit=10&category=Men&minPrice=1000&maxPrice=5000&sizes=M&brands=Nike
-// Success Response (200):
-/*
+---
+
+### ✏️ 3. Update Product
+**Method:** `PUT`
+
+**URL:** `/api/products/:id`
+
+#### 🔄 Example URL:
+```
+/api/products/66102e4bdb0a7611b36babc1
+```
+
+#### ✍️ Example Payload:
+```json
 {
-  "status": 200,
-  "message": "Products fetched successfully",
-  "data": {
-    "products": [
-      {
-        "_id": "665a1f2b3e4b5c6d7e8f9a1",
-        "name": "Men's Running Shoes",
-        "description": "Lightweight running shoes...",
-        "price": 3499,
-        "formattedPrice": "₹3499.00",
-        "sizes": ["M", "L"],
-        "category": "Men",
-        "stock": 25,
-        "imageUrl": "https://example.com/shoes.jpg",
-        "brand": "Nike",
-        "createdAt": "2024-05-31T12:34:56.789Z"
-      }
-    ],
-    "pagination": {
-      "totalItems": 1,
-      "totalPages": 1,
-      "currentPage": 1,
-      "pageSize": 10
-    }
-  }
+  "price": 799,
+  "stock": 150,
+  "images": ["https://example.com/images/shirt1-new.jpg"]
 }
-*/
+```
 
-// 3️⃣ GET SINGLE PRODUCT
-// GET /api/products/665a1f2b3e4b5c6d7e8f9a1
-// Success Response (200):
-/*
-{
-  "status": 200,
-  "message": "Product fetched successfully",
-  "data": {
-    "_id": "665a1f2b3e4b5c6d7e8f9a1",
-    "name": "Men's Running Shoes",
-    "description": "Lightweight running shoes...",
-    "price": 3499,
-    "formattedPrice": "₹3499.00",
-    "sizes": ["M", "L"],
-    "category": "Men",
-    "stock": 25,
-    "imageUrl": "https://example.com/shoes.jpg",
-    "brand": "Nike",
-    "createdAt": "2024-05-31T12:34:56.789Z"
-  }
-}
-*/
-// Not Found Response (404):
-/*
-{
-  "status": 404,
-  "message": "Product not found"
-}
-*/
+---
 
-// 4️⃣ UPDATE PRODUCT
-// PUT /api/products/665a1f2b3e4b5c6d7e8f9a1
-// Request Body:
-/*
-{
-  "price": 2999,
-  "stock": 20
-}
-*/
-// Success Response (200):
-/*
-{
-  "status": 200,
-  "message": "Product updated successfully",
-  "data": {
-    "_id": "665a1f2b3e4b5c6d7e8f9a1",
-    "name": "Men's Running Shoes",
-    "description": "Lightweight running shoes...",
-    "price": 2999,
-    "formattedPrice": "₹2999.00",
-    "sizes": ["M", "L"],
-    "category": "Men",
-    "stock": 20,
-    "imageUrl": "https://example.com/shoes.jpg",
-    "brand": "Nike",
-    "createdAt": "2024-05-31T12:34:56.789Z"
-  }
-}
-*/
+### ❌ 4. Delete Product
+**Method:** `DELETE`
 
-// 5️⃣ DELETE PRODUCT
-// DELETE /api/products/665a1f2b3e4b5c6d7e8f9a1
-// Success Response (200):
-/*
-{
-  "status": 200,
-  "message": "Product deleted successfully",
-  "deletedProduct": {
-    "_id": "665a1f2b3e4b5c6d7e8f9a1",
-    "name": "Men's Running Shoes",
-    "formattedPrice": "₹2999.00"
-  }
-}
-*/
+**URL:** `/api/products/:id`
 
-// 🛑 COMMON ERROR RESPONSES
-// 500 Internal Server Error:
-/*
-{
-  "status": 500,
-  "message": "Internal Server Error",
-  "error": "Database connection failed"
-}
-*/
+#### 🗑️ Example URL:
+```
+/api/products/66102e4bdb0a7611b36babc1
+```
 
-// 🔍 FILTERING PARAMETERS (FOR GET /products)
-/*
-?category=Men       // Filter by category (Men/Women/Kids)
-?minPrice=1000      // Minimum price in INR
-?maxPrice=5000      // Maximum price in INR
-?sizes=M,XL         // Comma-separated sizes (XS/S/M/L/XL/XXL)
-?brands=Nike,Pdidas // Comma-separated brands
-?page=2             // Pagination page number
-?limit=20           // Items per page (default: 10)
-*/
+---
 
-// 💡 SAMPLE USAGE SCENARIOS
-// 1. Get all Women's shoes under ₹3000:
-// GET /products?category=Women&maxPrice=3000
+### 📘 Notes
+- All image fields must be valid URLs.
+- Brands must be one of: `Nike`, `Pdidas`, `Yuma`, `Geebok`, `Over Arm`, `Norvix`
+- Sizes must be one of: `XS`, `S`, `M`, `L`, `XL`, `XXL`
+- Category must be one of: `Men`, `Women`, `Kids` */
 
-// 2. Get Nike products in size M:
-// GET /products?brands=Nike&sizes=M
-
-// 3. Get second page of Kids products:
-// GET /products?category=Kids&page=2&limit=15
