@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 router.post('/get', async (req, res) => {
   try {
     let {
+      id,
       page = 1,
       limit = 10,
       category,
@@ -17,9 +18,35 @@ router.post('/get', async (req, res) => {
       sort
     } = req.body;
 
+    // ✅ If ID is passed, fetch and return that product only
+    if (id) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          status: 400,
+          message: 'Invalid Product ID'
+        });
+      }
+
+      const product = await Product.findById(id);
+
+      if (!product) {
+        return res.status(404).json({
+          status: 404,
+          message: 'Product not found'
+        });
+      }
+
+      return res.status(200).json({
+        status: 200,
+        message: 'Product fetched successfully',
+        data: {
+          product
+        }
+      });
+    }
+
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
-
     const skip = (page - 1) * limit;
     const filter = {};
 
