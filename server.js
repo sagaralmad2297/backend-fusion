@@ -4,7 +4,7 @@ const cors = require("cors"); // Import CORS
 const connectDB = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
 const authRoutes = require("./routes/authRoutes");
-
+const cartRoutes = require('./routes/cartRoutes');
 const app = express();
 
 // ✅ Enable CORS
@@ -24,6 +24,7 @@ connectDB();
 
 // Routes
 app.use("/api/products", productRoutes);
+app.use('/api/cart', cartRoutes);
 app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
