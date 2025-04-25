@@ -5,6 +5,9 @@ const connectDB = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
 const authRoutes = require("./routes/authRoutes");
 const cartRoutes = require('./routes/cartRoutes');
+const addressRoutes = require('./routes/addressRoutes');
+const paymentRoutes = require("./routes/paymentRoutes");
+const orderRoutes = require("./routes/order");
 const app = express();
 
 // ✅ Enable CORS
@@ -25,7 +28,11 @@ connectDB();
 // Routes
 app.use("/api/products", productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/addresses', addressRoutes);
+
 app.use("/api/auth", authRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.get("/", (req, res) => {
   res.send("Fashion E-commerce Backend is running!");
