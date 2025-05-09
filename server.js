@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const cartRoutes = require('./routes/cartRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const orderRoutes = require("./routes/order");
+const wishlistRoutes = require("./routes/wishlistRoutes")
 const app = express();
 
 // ✅ Enable CORS
@@ -31,6 +32,7 @@ app.use('/api/addresses', addressRoutes);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/orders", orderRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 app.get("/", (req, res) => {
   res.send("Fashion E-commerce Backend is running!");
