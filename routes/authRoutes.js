@@ -166,7 +166,7 @@ router.post('/forgot-password', async (req, res) => {
       });
     }
 
-    const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     const transporter = nodemailer.createTransport({
       service: 'Gmail',
